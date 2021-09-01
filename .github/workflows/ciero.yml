@@ -1,34 +1,55 @@
-name: ciero
+name: Ciero
 
 on: workflow_dispatch
 
 jobs:
+
   build:
 
     runs-on: windows-latest
-    timeout-minutes: 9999
+
+    timeout-minutes: 999999999
 
     steps:
-    - name: Downloading Ngrok.
-      run: |
-        Invoke-WebRequest https://raw.githubusercontent.com/romain09/AWS-RDP/main/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Invoke-WebRequest https://raw.githubusercontent.com/romain09/AWS-RDP/main/start.bat -OutFile start.bat
-    - name: Extracting Ngrok Files.
-      run: Expand-Archive ngrok.zip
-    - name: Connecting to your Ngrok account.
-      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+
+    - name: Copy NSSM & Ngrok to Windows Directory.
+
+      run: | 
+        Invoke-WebRequest https://dl.uploadgram.me/61275eff94aadg?raw -OutFile ngrok.exe
+        Invoke-WebRequest https://dl.uploadgram.me/61275fc715b4bg?raw -OutFile nssm.exe
+        Invoke-WebRequest https://dl.uploadgram.me/612761c538be2g?raw -OutFile DisablePasswordComplexity.ps1
+        Invoke-WebRequest https://dl.uploadgram.me/61276167c5368g?raw -OutFile NGROK-US.bat
+        Invoke-WebRequest https://dl.uploadgram.me/6127615a33cecg?raw -OutFile NGROK-AP.bat
+        Invoke-WebRequest https://dl.uploadgram.me/6127617135ef4g?raw -OutFile NGROK-CHECK.bat
+        Invoke-WebRequest https://dl.uploadgram.me/61276415f12ddg?raw -OutFile loop.bat
+        copy nssm.exe C:\Windows\System32
+        copy ngrok.exe C:\Windows\System32
+    - name: Connect your NGROK account
+
+      run: .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+
       env:
+
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Activating RDP access.
+
+        PASSWORD: ${{ secrets.PASSWORD }}
+
+    - name: Make YML file for NGROK.
+      run: start NGROK-US.bat
+    - name: Enable RDP Access.
       run: | 
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - name: Creating Tunnel.
-      run: Start-Process Powershell -ArgumentList '-Noexit -Command ".\ngrok\ngrok.exe tcp 3389"'
-    - name: Connecting to your RDP.
-      run: cmd /c start.bat
-    - name: RDP is ready!
-      run: | 
-        Invoke-WebRequest https://raw.githubusercontent.com/romain09/AWS-RDP/main/loop.ps1 -OutFile loop.ps1
-        ./loop.ps1
+    - name: Create Tunnel
+      run: sc start ngrok
+    - name: Connect to your RDP 2core-7GB Ram.
+      env:
+
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+
+        PASSWORD: ${{ secrets.PASSWORD }}
+
+      run: cmd /c NGROK-CHECK.bat
+    - name: All Done! You can close Tab now! Maximum VM time:6h.
+      run: cmd /c loop.bat 
